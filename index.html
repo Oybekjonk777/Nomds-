@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nomds</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#101114;color:#f5f5f5;
+ font-family:Arial,sans-serif;padding:20px;
+}
+header{display:flex;justify-content:space-between;align-items:center}
+.logo{color:#f5c451;font-size:25px;font-weight:bold}
+small{color:#aaa}
+h2{margin-top:28px}
+.card{
+ background:#1c1d22;border:1px solid #303139;
+ padding:18px;border-radius:16px;margin:12px 0;
+}
+.gold{color:#f5c451}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#1c1d22;padding:16px;border-radius:14px}
+.stat strong{display:block;font-size:23px;margin-top:10px}
+input,button{
+ width:100%;padding:13px;margin-top:10px;
+ border-radius:10px;font-size:15px;
+}
+input{background:#101114;color:white;border:1px solid #41414a}
+button{background:#f5c451;color:#171717;border:0;font-weight:bold}
+.product{
+ padding:12px 0;border-bottom:1px solid #333;
+ display:flex;justify-content:space-between;gap:8px
+}
+nav{display:flex;gap:8px;margin:20px 0}
+nav button{font-size:12px;padding:12px 5px}
+.hidden{display:none}
+footer{text-align:center;color:#777;margin-top:30px}
+</style>
+</head>
+<body>
+<header>
+ <div>
+  <div class="logo">Nomdsgroup.</div>
+  <small>Biznesingiz — nazoratingizda</small>
+ </div>
+ <div class="gold">★ Group</div>
+</header>
+
+<nav>
+ <button onclick="showPage('home')">Bosh sahifa</button>
+ <button onclick="showPage('add')">Mahsulot qo‘shish</button>
+ <button onclick="showPage('list')">Mahsulotlar</button>
+</nav>
+
+<section id="home">
+ <h2>Boshqaruv paneli</h2>
+ <div class="stats">
+  <div class="stat">
+   <small>Mahsulotlar</small>
+   <strong id="count">0</strong>
+  </div>
+  <div class="stat">
+   <small>Buyurtmalar</small>
+   <strong id="orders">0</strong>
+  </div>
+  <div class="stat" style="grid-column:span 2">
+   <small>Jami savdo qiymati</small>
+   <strong class="gold" id="sales">0 so‘m</strong>
+  </div>
+ </div>
+ <div class="card">
+  <h3>Biznesingizni rivojlantiring!</h3>
+  <p>Mahsulotlaringizni kiriting va savdo hisobini yuriting.</p>
+  <button onclick="showPage('add')">+ Yangi mahsulot</button>
+ </div>
+</section>
+
+<section id="add" class="hidden">
+ <h2>Mahsulot qo‘shish</h2>
+ <div class="card">
+  <label>Mahsulot nomi</label>
+  <input id="name" placeholder="Masalan: Olma">
+  <label>Narxi (so‘m)</label>
+  <input id="price" type="number" min="1" placeholder="10000">
+  <label>Soni</label>
+  <input id="qty" type="number" min="1" value="1">
+  <button onclick="addProduct()">Saqlash</button>
+ </div>
+</section>
+
+<section id="list" class="hidden">
+ <h2>Mahsulotlar ro‘yxati</h2>
+ <div class="card" id="products">Hozircha mahsulot yo‘q.</div>
+</section>
+
+<footer>Nomdsgroup © 2026</footer>
+
+<script>
+let products = [];
+let orders = 0;
+let sales = 0;
+
+try {
+ products = JSON.parse(localStorage.getItem('bp_products')) || [];
+ orders = Number(localStorage.getItem('bp_orders')) || 0;
+ sales = Number(localStorage.getItem('bp_sales')) || 0;
+} catch(e) {
+ products = [];
+}
+
+function saveData(){
+ localStorage.setItem('bp_products',JSON.stringify(products));
+ localStorage.setItem('bp_orders',orders);
+ localStorage.setItem('bp_sales',sales);
+}
+
+function showPage(page){
+ ['home','add','list'].forEach(id=>{
+  document.getElementById(id).classList.toggle('hidden',id!==page);
+ });
+ if(page==='list') renderProducts();
+ updateStats();
+}
+
+function addProduct(){
+ const name=document.getElementById('name').value.trim();
+ const price=Number(document.getElementById('price').value);
+ const qty=Number(document.getElementById('qty').value);
+
+ if(!name || price<=0 || qty<=0){
+  alert('Nom, narx va sonni to‘g‘ri kiriting!');
+  return;
+ }
+
+ products.push({
+  id:Date.now(),name,price,qty
+ });
+
+ saveData();
+ document.getElementById('name').value='';
+ document.getElementById('price').value='';
+ document.getElementById('qty').value=1;
+ alert('Mahsulot saqlandi!');
+ showPage('list');
+}
+
+function renderProducts(){
+ const box=document.getElementById('products');
+
+ if(!products.length){
+  box.textContent='Hozircha mahsulot yo‘q.';
+  return;
+ }
+
+ box.innerHTML='';
+
+ products.forEach(p=>{
+  const item=document.createElement('div');
+  item.className='product';
+
+  const info=document.createElement('div');
+  const title=document.createElement('strong');
+  title.textContent=p.name;
+  const detail=document.createElement('div');
+  detail.textContent=p.price.toLocaleString('uz-UZ')+
+   ' so‘m × '+p.qty;
+  detail.style.color='#aaa';
+  info.append(title,detail);
+
+  const actions=document.createElement('div');
+  const sell=document.createElement('button');
+  sell.textContent='Sotish';
+  sell.style.width='auto';
+  sell.onclick=()=>sellProduct(p.id);
+
+  const del=document.createElement('button');
+  del.textContent='O‘chirish';
+  del.style.width='auto';
+  del.style.background='#444';
+  del.style.color='white';
+  del.onclick=()=>deleteProduct(p.id);
+
+  actions.append(sell,del);
+  item.append(info,actions);
+  box.append(item);
+ });
+}
+
+function sellProduct(id){
+ const p=products.find(x=>x.id===id);
+ if(!p || p.qty<1){
+  alert('Mahsulot qolmagan!');
+  return;
+ }
+ p.qty--;
+ orders++;
+ sales+=p.price;
+ products=products.filter(x=>x.qty>0);
+ saveData();
+ updateStats();
+ renderProducts();
+ alert('Savdo qayd etildi!');
+}
+
+function deleteProduct(id){
+ if(!confirm('Mahsulot o‘chirilsinmi?')) return;
+ products=products.filter(p=>p.id!==id);
+ saveData();
+ updateStats();
+ renderProducts();
+}
+
+function updateStats(){
+ document.getElementById('count').textContent=
+  products.length;
+ document.getElementById('orders').textContent=orders;
+ document.getElementById('sales').textContent=
+  sales.toLocaleString('uz-UZ')+' so‘m';
+}
+
+updateStats();
+</script>
+</body>
+</html>
